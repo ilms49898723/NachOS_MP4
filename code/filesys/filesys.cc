@@ -62,7 +62,7 @@
 // supports extensible files, the directory size sets the maximum number
 // of files that can be loaded onto the disk.
 #define FreeMapFileSize     (NumSectors / BitsInByte)
-#define NumDirEntries       10
+#define NumDirEntries       64
 #define DirectoryFileSize   (sizeof(DirectoryEntry) * NumDirEntries)
 
 //----------------------------------------------------------------------
@@ -80,6 +80,8 @@
 
 FileSystem::FileSystem(bool format) {
     DEBUG(dbgFile, "Initializing the file system.");
+
+    wdEnable = FALSE;
 
     if (format) {
         PersistentBitmap* freeMap = new PersistentBitmap(NumSectors);
@@ -202,9 +204,23 @@ FileSystem::Create(char* name, int initialSize) {
     DEBUG(dbgFile, "Creating file " << name << " size " << initialSize);
 
     directory = new Directory(NumDirEntries);
-    directory->FetchFrom(directoryFile);
 
-    if (directory->Find(name) != -1) {
+    char tempdir[1024];
+    char filename[1024];
+    strncpy(tempdir, name, 1024);
+    int tempdiridx = strlen(tempdir) - 1;
+    while (tempdiridx >= 0 && tempdir[tempdiridx] != '/') {
+        --tempdiridx;
+    }
+    tempdir[tempdiridx] = '\0';
+    strncpy(filename, name + tempdiridx + 1, 1024);
+    OpenFile* dirFile = OpenDir(tempdir);
+    if (dirFile == NULL) {
+        return FALSE;
+    }
+    directory->FetchFrom(dirFile);
+
+    if (directory->Find(filename) != -1) {
         success = FALSE;    // file is already in directory
     } else {
         freeMap = new PersistentBitmap(freeMapFile, NumSectors);
@@ -221,7 +237,7 @@ FileSystem::Create(char* name, int initialSize) {
 
         if (sector == -1 || level1Flag == FALSE) {
             success = FALSE;    // no free block for file header
-        } else if (!directory->Add(name, sector)) {
+        } else if (!directory->Add(filename, sector)) {
             success = FALSE;    // no space in directory
         } else {
             hdr = new FileHeader;
@@ -251,7 +267,7 @@ FileSystem::Create(char* name, int initialSize) {
                     level1Hdr[i].WriteBack(level1Sector[i]);
                 }
 
-                directory->WriteBack(directoryFile);
+                directory->WriteBack(dirFile);
                 freeMap->WriteBack(freeMapFile);
             }
 
@@ -261,8 +277,91 @@ FileSystem::Create(char* name, int initialSize) {
         delete freeMap;
     }
 
+    delete dirFile;
     delete directory;
     return success;
+}
+
+bool
+FileSystem::CreateDirectory(char* name, char* parent) {
+    Directory* directory;
+    PersistentBitmap* freeMap;
+    FileHeader* dirHdr;
+    int sector;
+    bool success = TRUE;
+
+    DEBUG(dbgFile, "Creating directory " << name);
+
+    directory = new Directory(NumDirEntries);
+    OpenFile* dirFile = OpenDir(parent);
+    if (dirFile == NULL) {
+        return FALSE;
+    }
+    directory->FetchFrom(dirFile);
+
+    if (directory->Find(name) != -1) {
+        success = FALSE;
+    } else {
+        freeMap = new PersistentBitmap(freeMapFile, NumSectors);
+        sector = freeMap->FindAndSet();
+
+        if (sector == -1) {
+            success = FALSE;
+        } else if (!directory->Add(name, sector)) {
+            success = FALSE;
+        } else {
+            dirHdr = new FileHeader;
+
+            dirHdr->level = 1;
+
+            if (!dirHdr->Allocate(freeMap, DirectoryFileSize)) {
+                success = FALSE;
+            } else {
+                success = TRUE;
+                dirHdr->WriteBack(sector);
+                directory->WriteBack(dirFile);
+                freeMap->WriteBack(freeMapFile);
+
+                Directory* newDirectory = new Directory(NumDirEntries);
+                OpenFile* newDirFile = new OpenFile(sector);
+                newDirectory->WriteBack(newDirFile);
+                delete newDirFile;
+                delete newDirectory;
+            }
+
+            delete dirHdr;
+        }
+
+        delete freeMap;
+    }
+
+    delete dirFile;
+    delete directory;
+    return success;
+}
+
+OpenFile*
+FileSystem::OpenDir(char* inpath) {
+    char path[1024];
+    strncpy(path, inpath, 1024);
+    Directory* directory = new Directory(NumDirEntries);
+    directory->FetchFrom(directoryFile);
+    char* split;
+    int sector = 1;
+    split = strtok(path, "/");
+    while (split != NULL) {
+        sector = directory->Find(split);
+        if (sector == -1) {
+            return NULL;
+        } else {
+            OpenFile* dirFile = new OpenFile(sector);
+            directory->FetchFrom(dirFile);
+            delete dirFile;
+        }
+        split = strtok(split + strlen(split) + 1, "/");
+    }
+    delete directory;
+    return new OpenFile(sector);
 }
 
 //----------------------------------------------------------------------
@@ -282,8 +381,24 @@ FileSystem::Open(char* name) {
     int sector;
 
     DEBUG(dbgFile, "Opening file" << name);
-    directory->FetchFrom(directoryFile);
-    sector = directory->Find(name);
+
+    char tempdir[1024];
+    char filename[1024];
+    strncpy(tempdir, name, 1024);
+    int tempdiridx = strlen(tempdir) - 1;
+    while (tempdiridx >= 0 && tempdir[tempdiridx] != '/') {
+        --tempdiridx;
+    }
+    tempdir[tempdiridx] = '\0';
+    strncpy(filename, name + tempdiridx + 1, 1024);
+    OpenFile* dirFile = OpenDir(tempdir);
+    if (dirFile == NULL) {
+        return NULL;
+    }
+    directory->FetchFrom(dirFile);
+    delete dirFile;
+
+    sector = directory->Find(filename);
 
     if (sector >= 0) {
         openFile = new OpenFile(sector);    // name was found in directory
@@ -352,12 +467,22 @@ FileSystem::Remove(char* name) {
 //----------------------------------------------------------------------
 
 void
-FileSystem::List() {
+FileSystem::List(char* listDirectoryName) {
     Directory* directory = new Directory(NumDirEntries);
-
-    directory->FetchFrom(directoryFile);
+    OpenFile* dirFile = OpenDir(listDirectoryName);
+    if (dirFile == NULL) {
+        delete directory;
+        return;
+    }
+    directory->FetchFrom(dirFile);
     directory->List();
+    delete dirFile;
     delete directory;
+}
+
+void
+FileSystem::RecursiveList(char* listDirectoryName) {
+
 }
 
 //----------------------------------------------------------------------
@@ -404,7 +529,6 @@ int FileSystem::Open(char* name, int unused) {
             return i;
         }
     }
-    cout << -1 << endl;
     return -1;
 }
 
@@ -429,6 +553,16 @@ int FileSystem::Close(int fileid) {
     delete fileDescriptorTable[fileid];
     fileDescriptorTable[fileid] = NULL;
     return 1;
+}
+
+void FileSystem::SetWorkingDirectory(char* filepath) {
+    strncpy(wd, filepath, 1024);
+    int idx = strlen(filepath) - 1;
+    while (idx >= 0 && wd[idx] != '/') {
+        --idx;
+    }
+    wd[idx] = '\0';
+    wdEnable = TRUE;
 }
 
 #endif // FILESYS_STUB

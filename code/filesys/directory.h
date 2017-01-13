@@ -81,6 +81,7 @@ private:
         In-core part: tableSize
     */
 
+    int entryIdx;
     int tableSize;          // Number of directory entries
     DirectoryEntry* table;      // Table of pairs:
     // <file name, file header location>

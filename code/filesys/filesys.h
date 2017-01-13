@@ -127,11 +127,17 @@ public:
     bool Create(char* name, int initialSize);
     // Create a file (UNIX creat)
 
+    bool CreateDirectory(char* name, char* parent);
+
+    OpenFile* OpenDir(char* inpath);
+
     OpenFile* Open(char* name);     // Open a file (UNIX open)
 
     bool Remove(char* name);        // Delete a file (UNIX unlink)
 
-    void List();            // List all the files in the file system
+    void List(char* listDirectoryName);            // List all the files in the file system
+
+    void RecursiveList(char* listDirectoryName);            // List all the files in the file system
 
     void Print();           // List all the files and their contents
 
@@ -143,9 +149,15 @@ public:
 
     int Close(int fileid);
 
+    void SetWorkingDirectory(char* filepath);
+
     OpenFile* fileDescriptorTable[20];
 
 private:
+    bool wdEnable;
+
+    char wd[1024];
+
     OpenFile* freeMapFile;       // Bit map of free disk blocks,
     // represented as a file
     OpenFile* directoryFile;     // "Root" directory -- list of

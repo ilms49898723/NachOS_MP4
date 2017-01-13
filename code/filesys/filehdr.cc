@@ -39,6 +39,7 @@
 FileHeader::FileHeader() {
     numBytes = -1;
     numSectors = -1;
+    level = -1;
     memset(dataSectors, -1, sizeof(dataSectors));
 }
 

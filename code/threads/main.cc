@@ -159,6 +159,19 @@ Print(char* name) {
 static void
 CreateDirectory(char* name) {
     // MP4 Assignment
+    char* split;
+    char myname[1024];
+    char lastDir[1024] = "/";
+    strncpy(myname, name, 1024);
+    split = strtok(myname, "/");
+    while (split != NULL) {
+        bool response = kernel->fileSystem->CreateDirectory(split, lastDir);
+        if (lastDir[strlen(lastDir) - 1] != '/') {
+            strcat(lastDir, "/");
+        }
+        strcat(lastDir, split);
+        split = strtok(split + strlen(split) + 1, "/");
+    }
 }
 
 //----------------------------------------------------------------------
@@ -318,7 +331,11 @@ main(int argc, char** argv) {
     }
 
     if (dirListFlag) {
-        kernel->fileSystem->List();
+        if (recursiveListFlag) {
+            kernel->fileSystem->RecursiveList(listDirectoryName);
+        } else {
+            kernel->fileSystem->List(listDirectoryName);
+        }
     }
 
     if (mkdirFlag) {
