@@ -86,6 +86,8 @@ FileSystem::FileSystem(bool format) {
         Directory* directory = new Directory(NumDirEntries);
         FileHeader* mapHdr = new FileHeader;
         FileHeader* dirHdr = new FileHeader;
+        mapHdr->level = 1;
+        dirHdr->level = 1;
 
         DEBUG(dbgFile, "Formatting the file system.");
 
@@ -187,11 +189,15 @@ FileSystem::~FileSystem() {
 
 bool
 FileSystem::Create(char* name, int initialSize) {
+    const int NumOfLevel1Hdr = divRoundUp(initialSize, SectorSize * NumDirect);
+
     Directory* directory;
     PersistentBitmap* freeMap;
     FileHeader* hdr;
+    FileHeader level1Hdr[NumDirect];
     int sector;
-    bool success;
+    int level1Sector[NumDirect];
+    bool success = TRUE;
 
     DEBUG(dbgFile, "Creating file " << name << " size " << initialSize);
 
@@ -204,19 +210,47 @@ FileSystem::Create(char* name, int initialSize) {
         freeMap = new PersistentBitmap(freeMapFile, NumSectors);
         sector = freeMap->FindAndSet(); // find a sector to hold the file header
 
-        if (sector == -1) {
+        bool level1Flag = TRUE;
+        for (int i = 0; i < NumOfLevel1Hdr; ++i) {
+            level1Sector[i] = freeMap->FindAndSet();
+            if (level1Sector[i] == -1) {
+                level1Flag = FALSE;
+                break;
+            }
+        }
+
+        if (sector == -1 || level1Flag == FALSE) {
             success = FALSE;    // no free block for file header
         } else if (!directory->Add(name, sector)) {
             success = FALSE;    // no space in directory
         } else {
             hdr = new FileHeader;
 
-            if (!hdr->Allocate(freeMap, initialSize)) {
-                success = FALSE;    // no space on disk for data
-            } else {
-                success = TRUE;
+            hdr->numBytes = initialSize;
+            hdr->numSectors = NumOfLevel1Hdr;
+            hdr->level = 0;
+            for (int i = 0; i < NumOfLevel1Hdr; ++i) {
+                hdr->dataSectors[i] = level1Sector[i];
+            }
+
+            int remainFileSize = initialSize;
+            int level1HdrIdx = 0;
+            while (remainFileSize > 0) {
+                int toRequest = (remainFileSize >= NumDirect * SectorSize) ? NumDirect * SectorSize : remainFileSize;
+                remainFileSize -= toRequest;
+                level1Hdr[level1HdrIdx].level = 1;
+                if (!level1Hdr[level1HdrIdx++].Allocate(freeMap, toRequest)) {
+                    success = FALSE;
+                }
+            }
+
+            if (success == TRUE) {
                 // everthing worked, flush all changes back to disk
                 hdr->WriteBack(sector);
+                for (int i = 0; i < NumOfLevel1Hdr; ++i) {
+                    level1Hdr[i].WriteBack(level1Sector[i]);
+                }
+
                 directory->WriteBack(directoryFile);
                 freeMap->WriteBack(freeMapFile);
             }
@@ -294,6 +328,12 @@ FileSystem::Remove(char* name) {
 
     freeMap = new PersistentBitmap(freeMapFile, NumSectors);
 
+    for (int i = 0; i < fileHdr->numSectors; ++i) {
+        FileHeader* level1Hdr = new FileHeader;
+        level1Hdr->FetchFrom(fileHdr->dataSectors[i]);
+        level1Hdr->Deallocate(freeMap);
+        freeMap->Clear(fileHdr->dataSectors[i]);
+    }
     fileHdr->Deallocate(freeMap);       // remove data blocks
     freeMap->Clear(sector);         // remove header block
     directory->Remove(name);

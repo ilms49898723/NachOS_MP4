@@ -67,7 +67,7 @@ FileHeader::~FileHeader() {
 bool
 FileHeader::Allocate(PersistentBitmap* freeMap, int fileSize) {
     numBytes = fileSize;
-    numSectors  = divRoundUp(fileSize, SectorSize);
+    numSectors = divRoundUp(fileSize, SectorSize);
 
     if (freeMap->NumClear() < numSectors) {
         return FALSE;    // not enough space
