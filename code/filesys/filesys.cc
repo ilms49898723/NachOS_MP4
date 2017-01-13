@@ -356,4 +356,39 @@ FileSystem::Print() {
     delete directory;
 }
 
+int FileSystem::Open(char* name, int unused) {
+    OpenFile* fp = Open(name);
+    for (int i = 1; i < 20; ++i) {
+        if (fileDescriptorTable[i] == NULL) {
+            fileDescriptorTable[i] = fp;
+            return i;
+        }
+    }
+    cout << -1 << endl;
+    return -1;
+}
+
+int FileSystem::Write(char* buffer, int size, int fileid) {
+    if (fileDescriptorTable[fileid] == NULL) {
+        return -1;
+    }
+    return fileDescriptorTable[fileid]->Write(buffer, size);
+}
+
+int FileSystem::Read(char* buffer, int size, int fileid) {
+    if (fileDescriptorTable[fileid] == NULL) {
+        return -1;
+    }
+    return fileDescriptorTable[fileid]->Read(buffer, size);
+}
+
+int FileSystem::Close(int fileid) {
+    if (fileDescriptorTable[fileid] == NULL) {
+        return 0;
+    }
+    delete fileDescriptorTable[fileid];
+    fileDescriptorTable[fileid] = NULL;
+    return 1;
+}
+
 #endif // FILESYS_STUB

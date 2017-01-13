@@ -135,42 +135,13 @@ public:
 
     void Print();           // List all the files and their contents
 
-    int Open(char* name, int unused) {
-        OpenFile* fp = Open(name);
-        for (int i = 1; i < 20; ++i) {
-            if (fileDescriptorTable[i] == NULL) {
-                fileDescriptorTable[i] = fp;
-                return i;
-            }
-        }
-        cout << -1 << endl;
-        return -1;
-    }
+    int Open(char* name, int unused);
 
-    int Write(char* buffer, int size, int fileid) {
-        if (fileDescriptorTable[fileid] == NULL) {
-            return -1;
-        }
-        return fileDescriptorTable[fileid]->Write(buffer, size);
-    }
+    int Write(char* buffer, int size, int fileid);
 
-    int Read(char* buffer, int size, int fileid) {
-        if (fileDescriptorTable[fileid] == NULL) {
-            return -1;
-        }
-        return fileDescriptorTable[fileid]->Read(buffer, size);
-    }
+    int Read(char* buffer, int size, int fileid);
 
-    int Close(int fileid) {
-        if (fileDescriptorTable[fileid] == NULL) {
-            return 0;
-        }
-        delete fileDescriptorTable[fileid];
-        fileDescriptorTable[fileid] = NULL;
-        return 1;
-    }
-
-
+    int Close(int fileid);
 
     OpenFile* fileDescriptorTable[20];
 
