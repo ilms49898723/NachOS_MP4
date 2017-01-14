@@ -307,7 +307,7 @@ FileSystem::CreateDirectory(char* name, char* parent) {
 
         if (sector == -1) {
             success = FALSE;
-        } else if (!directory->Add(name, sector)) {
+        } else if (!directory->AddDir(name, sector)) {
             success = FALSE;
         } else {
             dirHdr = new FileHeader;
@@ -481,8 +481,31 @@ FileSystem::List(char* listDirectoryName) {
 }
 
 void
-FileSystem::RecursiveList(char* listDirectoryName) {
-
+FileSystem::RecursiveList(char* listDirectoryName, int tab) {
+    Directory* directory = new Directory(NumDirEntries);
+    OpenFile* dirFile = OpenDir(listDirectoryName);
+    if (dirFile == NULL) {
+        delete directory;
+        return;
+    }
+    directory->FetchFrom(dirFile);
+    for (int i = 0; i < directory->tableSize; ++i) if (directory->table[i].inUse) {
+        for (int j = 0; j < tab; ++j) {
+            cout << "  ";
+        }
+        cout << directory->table[i].name << (directory->table[i].type ? "/" : "") << endl;
+        if (directory->table[i].type) {
+            char nextDir[1024];
+            strncpy(nextDir, listDirectoryName, 1024);
+            if (nextDir[strlen(nextDir) - 1] != '/') {
+                strcat(nextDir, "/");
+            }
+            strcat(nextDir, directory->table[i].name);
+            RecursiveList(nextDir, tab + 2);
+        }
+    }
+    delete dirFile;
+    delete directory;
 }
 
 //----------------------------------------------------------------------
