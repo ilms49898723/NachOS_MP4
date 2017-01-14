@@ -543,7 +543,7 @@ FileSystem::List(char* listDirectoryName) {
 }
 
 void
-FileSystem::RecursiveList(char* listDirectoryName, int tab) {
+FileSystem::RecursiveList(char* listDirectoryName, int tab, bool isLast) {
     Directory* directory = new Directory(NumDirEntries);
     OpenFile* dirFile = OpenDir(listDirectoryName);
 
@@ -566,7 +566,11 @@ FileSystem::RecursiveList(char* listDirectoryName, int tab) {
             --totalCount;
 
             for (int j = 0; j < tab / 4 - 1; ++j) {
-                cout << "│   ";
+                if (!isLast) {
+                    cout << "│   ";
+                } else {
+                    cout << "    ";
+                }
             }
 
             if (totalCount) {
@@ -583,7 +587,7 @@ FileSystem::RecursiveList(char* listDirectoryName, int tab) {
             if (directory->table[i].type) {
                 char nextDir[1024];
                 JoinPath(nextDir, listDirectoryName, directory->table[i].name);
-                RecursiveList(nextDir, tab + 4);
+                RecursiveList(nextDir, tab + 4, totalCount == 0);
             }
         }
     }

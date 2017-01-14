@@ -145,7 +145,7 @@ public:
 
     void List(char* listDirectoryName);            // List all the files in the file system
 
-    void RecursiveList(char* listDirectoryName, int tab = 4);            // List all the files in the file system
+    void RecursiveList(char* listDirectoryName, int tab = 4, bool isLast = FALSE); // List all the files in the file system
 
     void Print();           // List all the files and their contents
 
