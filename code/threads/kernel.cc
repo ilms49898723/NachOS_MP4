@@ -334,28 +334,23 @@ int Kernel::CreateFile(char* filename, int initialSize) {
     return fileSystem->Create(filename, initialSize);
 }
 
-int Kernel::Open(char* filename)
-{
+int Kernel::Open(char* filename) {
     return fileSystem->Open(filename, 0);
 }
 
-int Kernel::Write(char* buffer, int size, int id)
-{
+int Kernel::Write(char* buffer, int size, int id) {
     return fileSystem->Write(buffer, size, id);
 }
 
-int Kernel::Read(char* buffer, int size, int id)
-{
+int Kernel::Read(char* buffer, int size, int id) {
     return fileSystem->Read(buffer, size, id);
 }
 
-int Kernel::Close(int id)
-{
+int Kernel::Close(int id) {
     return fileSystem->Close(id);
 }
 
-void Kernel::PrintChar(char c)
-{
+void Kernel::PrintChar(char c) {
     synchConsoleOut->PutChar(c);
 }
 

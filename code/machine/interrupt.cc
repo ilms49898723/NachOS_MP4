@@ -28,9 +28,9 @@
 
 static char intLevelNames[][5] = { "off", "on"};
 static char intTypeNames[][50] = { "timer", "disk", "console write",
-                                "console read", "network send",
-                                "network recv"
-                              };
+                                   "console read", "network send",
+                                   "network recv"
+                                 };
 
 //----------------------------------------------------------------------
 // PendingInterrupt::PendingInterrupt
@@ -251,23 +251,27 @@ Interrupt::Halt() {
 
 
 void
-Interrupt::PrintInt(int number)
-{
+Interrupt::PrintInt(int number) {
     char num[40];
     int idx = 0;
     bool flag = false;
+
     if (number < 0) {
         flag = true;
         number *= (-1);
     }
+
     num[idx++] = '\n';
+
     do {
         num[idx++] = (number % 10) + '0';
         number /= 10;
     } while (number > 0);
+
     if (flag) {
         num[idx++] = '-';
     }
+
     for (int i = idx - 1; i >= 0; --i) {
         kernel->PrintChar(num[i]);
     }
@@ -279,26 +283,22 @@ Interrupt::CreateFile(char* filename, int initialSize) {
 }
 
 int
-Interrupt::Open(char* filename)
-{
+Interrupt::Open(char* filename) {
     return kernel->Open(filename);
 }
 
 int
-Interrupt::Write(char* buffer, int size, int id)
-{
+Interrupt::Write(char* buffer, int size, int id) {
     return kernel->Write(buffer, size, id);
 }
 
 int
-Interrupt::Read(char* buffer, int size, int id)
-{
+Interrupt::Read(char* buffer, int size, int id) {
     return kernel->Read(buffer, size, id);
 }
 
 int
-Interrupt::Close(int id)
-{
+Interrupt::Close(int id) {
     return kernel->Close(id);
 }
 

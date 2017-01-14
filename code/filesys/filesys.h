@@ -71,12 +71,17 @@ public:
 
     int Open(char* name, int unused) {
         int fileid = OpenForReadWrite(name, FALSE);
-        if (fileid == -1) return -1;
+
+        if (fileid == -1) {
+            return -1;
+        }
+
         if (fileid >= 20) {
             cerr << "fd >= 20!!!" << endl;
             ::Close(fileid);
             return -1;
         }
+
         fileDescriptorTable[fileid] = new OpenFile(fileid);
         return fileid;
     }
@@ -85,6 +90,7 @@ public:
         if (fileDescriptorTable[fileid] == NULL) {
             return -1;
         }
+
         return fileDescriptorTable[fileid]->Write(buffer, size);
     }
 
@@ -92,6 +98,7 @@ public:
         if (fileDescriptorTable[fileid] == NULL) {
             return -1;
         }
+
         return fileDescriptorTable[fileid]->Read(buffer, size);
     }
 
@@ -99,6 +106,7 @@ public:
         if (fileDescriptorTable[fileid] == NULL) {
             return 0;
         }
+
         delete fileDescriptorTable[fileid];
         fileDescriptorTable[fileid] = NULL;
         return 1;

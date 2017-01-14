@@ -114,6 +114,7 @@ OpenFile::ReadAt(char* into, int numBytes, int position) {
     char* buf;
 
     FileHeader* level1Hdr = new FileHeader[hdr->numSectors];
+
     if (hdr->level == 0) {
         for (int i = 0; i < hdr->numSectors; ++i) {
             level1Hdr[i].FetchFrom(hdr->dataSectors[i]);
@@ -164,6 +165,7 @@ OpenFile::WriteAt(char* from, int numBytes, int position) {
     char* buf;
 
     FileHeader* level1Hdr = new FileHeader[hdr->numSectors];
+
     if (hdr->level == 0) {
         for (int i = 0; i < hdr->numSectors; ++i) {
             level1Hdr[i].FetchFrom(hdr->dataSectors[i]);

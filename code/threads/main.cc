@@ -164,11 +164,14 @@ CreateDirectory(char* name) {
     char lastDir[1024] = "/";
     strncpy(myname, name, 1024);
     split = strtok(myname, "/");
+
     while (split != NULL) {
         kernel->fileSystem->CreateDirectory(split, lastDir);
+
         if (lastDir[strlen(lastDir) - 1] != '/') {
             strcat(lastDir, "/");
         }
+
         strcat(lastDir, split);
         split = strtok(split + strlen(split) + 1, "/");
     }
@@ -262,6 +265,7 @@ main(int argc, char** argv) {
             } else {
                 listDirectoryName = rootString;
             }
+
             dirListFlag = true;
             i++;
         } else if (strcmp(argv[i], "-lr") == 0) {
@@ -272,6 +276,7 @@ main(int argc, char** argv) {
             } else {
                 listDirectoryName = rootString;
             }
+
             dirListFlag = true;
             recursiveListFlag = true;
             i++;

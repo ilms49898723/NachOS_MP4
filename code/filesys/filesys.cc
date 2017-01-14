@@ -209,9 +209,11 @@ FileSystem::Create(char* name, int initialSize) {
     char filename[1024];
     SplitPath(name, parent, filename);
     OpenFile* dirFile = OpenDir(parent);
+
     if (dirFile == NULL) {
         return FALSE;
     }
+
     directory->FetchFrom(dirFile);
 
     if (directory->Find(filename) != -1) {
@@ -221,8 +223,10 @@ FileSystem::Create(char* name, int initialSize) {
         sector = freeMap->FindAndSet(); // find a sector to hold the file header
 
         bool level1Flag = TRUE;
+
         for (int i = 0; i < NumOfLevel1Hdr; ++i) {
             level1Sector[i] = freeMap->FindAndSet();
+
             if (level1Sector[i] == -1) {
                 level1Flag = FALSE;
                 break;
@@ -239,16 +243,19 @@ FileSystem::Create(char* name, int initialSize) {
             hdr->numBytes = initialSize;
             hdr->numSectors = NumOfLevel1Hdr;
             hdr->level = 0;
+
             for (int i = 0; i < NumOfLevel1Hdr; ++i) {
                 hdr->dataSectors[i] = level1Sector[i];
             }
 
             int remainFileSize = initialSize;
             int level1HdrIdx = 0;
+
             while (remainFileSize > 0) {
                 int toRequest = (remainFileSize >= NumDirect * SectorSize) ? NumDirect * SectorSize : remainFileSize;
                 remainFileSize -= toRequest;
                 level1Hdr[level1HdrIdx].level = 1;
+
                 if (!level1Hdr[level1HdrIdx++].Allocate(freeMap, toRequest)) {
                     success = FALSE;
                 }
@@ -257,6 +264,7 @@ FileSystem::Create(char* name, int initialSize) {
             if (success == TRUE) {
                 // everthing worked, flush all changes back to disk
                 hdr->WriteBack(sector);
+
                 for (int i = 0; i < NumOfLevel1Hdr; ++i) {
                     level1Hdr[i].WriteBack(level1Sector[i]);
                 }
@@ -288,9 +296,11 @@ FileSystem::CreateDirectory(char* name, char* parent) {
 
     directory = new Directory(NumDirEntries);
     OpenFile* dirFile = OpenDir(parent);
+
     if (dirFile == NULL) {
         return FALSE;
     }
+
     directory->FetchFrom(dirFile);
 
     if (directory->Find(name) != -1) {
@@ -343,8 +353,10 @@ FileSystem::OpenDir(char* inpath) {
     char* split;
     int sector = 1;
     split = strtok(path, "/");
+
     while (split != NULL) {
         sector = directory->Find(split);
+
         if (sector == -1) {
             return NULL;
         } else {
@@ -352,8 +364,10 @@ FileSystem::OpenDir(char* inpath) {
             directory->FetchFrom(dirFile);
             delete dirFile;
         }
+
         split = strtok(split + strlen(split) + 1, "/");
     }
+
     delete directory;
     return new OpenFile(sector);
 }
@@ -380,9 +394,11 @@ FileSystem::Open(char* name) {
     char filename[1024];
     SplitPath(name, parent, filename);
     OpenFile* dirFile = OpenDir(parent);
+
     if (dirFile == NULL) {
         return NULL;
     }
+
     directory->FetchFrom(dirFile);
     delete dirFile;
 
@@ -425,11 +441,13 @@ FileSystem::Remove(char* name, bool recur) {
 
     directory = new Directory(NumDirEntries);
     OpenFile* dirFile = OpenDir(parent);
+
     if (dirFile == NULL) {
         cout << "Directory " << parent << " not found!" << endl;
         delete directory;
         return FALSE;
     }
+
     directory->FetchFrom(dirFile);
     sector = directory->Find(filename);
     tableIdx = directory->FindIndex(filename);
@@ -452,11 +470,13 @@ FileSystem::Remove(char* name, bool recur) {
         Directory* nextDir = new Directory(NumDirEntries);
         nextDir->FetchFrom(nextDirFile);
         int totalCount = 0;
+
         for (int i = 0; i < nextDir->tableSize; ++i) {
             if (nextDir->table[i].inUse) {
                 ++totalCount;
             }
         }
+
         if (recur == FALSE && totalCount != 0) {
             cout << filename << ": directory not empty!" << endl;
             delete directory;
@@ -465,6 +485,7 @@ FileSystem::Remove(char* name, bool recur) {
             delete nextDir;
             return FALSE;
         }
+
         for (int i = 0; i < nextDir->tableSize; ++i) {
             if (nextDir->table[i].inUse) {
                 char nextFilename[1024];
@@ -472,6 +493,7 @@ FileSystem::Remove(char* name, bool recur) {
                 Remove(nextFilename, recur);
             }
         }
+
         delete nextDir;
     }
 
@@ -485,6 +507,7 @@ FileSystem::Remove(char* name, bool recur) {
             delete level1Hdr;
         }
     }
+
     fileHdr->Deallocate(freeMap);       // remove data blocks
     freeMap->Clear(sector);         // remove header block
     directory->Remove(filename);
@@ -507,10 +530,12 @@ void
 FileSystem::List(char* listDirectoryName) {
     Directory* directory = new Directory(NumDirEntries);
     OpenFile* dirFile = OpenDir(listDirectoryName);
+
     if (dirFile == NULL) {
         delete directory;
         return;
     }
+
     directory->FetchFrom(dirFile);
     directory->List();
     delete dirFile;
@@ -521,35 +546,44 @@ void
 FileSystem::RecursiveList(char* listDirectoryName, int tab) {
     Directory* directory = new Directory(NumDirEntries);
     OpenFile* dirFile = OpenDir(listDirectoryName);
+
     if (dirFile == NULL) {
         delete directory;
         return;
     }
+
     directory->FetchFrom(dirFile);
     int totalCount = 0;
+
     for (int i = 0; i < directory->tableSize; ++i) if (directory->table[i].inUse) {
-        ++totalCount;
-    }
+            ++totalCount;
+        }
+
     for (int i = 0; i < directory->tableSize; ++i) if (directory->table[i].inUse) {
-        --totalCount;
-        for (int j = 0; j < tab / 4 - 1; ++j) {
-            cout << "│   ";
+            --totalCount;
+
+            for (int j = 0; j < tab / 4 - 1; ++j) {
+                cout << "│   ";
+            }
+
+            if (totalCount) {
+                cout << "├──";
+            } else {
+                cout << "└──";
+            }
+
+            cout << (directory->table[i].type ? "\x1B[1;34m" : "");
+            cout << directory->table[i].name;
+            cout << (directory->table[i].type ? "/" : "");
+            cout << "\x1B[0m" << endl;
+
+            if (directory->table[i].type) {
+                char nextDir[1024];
+                JoinPath(nextDir, listDirectoryName, directory->table[i].name);
+                RecursiveList(nextDir, tab + 4);
+            }
         }
-        if (totalCount) {
-            cout << "├──";
-        } else {
-            cout << "└──";
-        }
-        cout << (directory->table[i].type ? "\x1B[1;34m" : "");
-        cout << directory->table[i].name;
-        cout << (directory->table[i].type ? "/" : "");
-        cout << "\x1B[0m" << endl;
-        if (directory->table[i].type) {
-            char nextDir[1024];
-            JoinPath(nextDir, listDirectoryName, directory->table[i].name);
-            RecursiveList(nextDir, tab + 4);
-        }
-    }
+
     delete dirFile;
     delete directory;
 }
@@ -592,12 +626,14 @@ FileSystem::Print() {
 
 int FileSystem::Open(char* name, int unused) {
     OpenFile* fp = Open(name);
+
     for (int i = 1; i < 20; ++i) {
         if (fileDescriptorTable[i] == NULL) {
             fileDescriptorTable[i] = fp;
             return i;
         }
     }
+
     return -1;
 }
 
@@ -605,6 +641,7 @@ int FileSystem::Write(char* buffer, int size, int fileid) {
     if (fileDescriptorTable[fileid] == NULL) {
         return -1;
     }
+
     return fileDescriptorTable[fileid]->Write(buffer, size);
 }
 
@@ -612,6 +649,7 @@ int FileSystem::Read(char* buffer, int size, int fileid) {
     if (fileDescriptorTable[fileid] == NULL) {
         return -1;
     }
+
     return fileDescriptorTable[fileid]->Read(buffer, size);
 }
 
@@ -619,6 +657,7 @@ int FileSystem::Close(int fileid) {
     if (fileDescriptorTable[fileid] == NULL) {
         return 0;
     }
+
     delete fileDescriptorTable[fileid];
     fileDescriptorTable[fileid] = NULL;
     return 1;
@@ -627,9 +666,11 @@ int FileSystem::Close(int fileid) {
 void FileSystem::SetWorkingDirectory(char* filepath) {
     strncpy(wd, filepath, 1024);
     int idx = strlen(filepath) - 1;
+
     while (idx >= 0 && wd[idx] != '/') {
         --idx;
     }
+
     wd[idx] = '\0';
     wdEnable = TRUE;
 }
@@ -639,9 +680,11 @@ void FileSystem::SplitPath(char* fullpath, char* parent, char* name) {
 
     int idx;
     idx = strlen(parent) - 1;
+
     while (idx >= 0 && parent[idx] != '/') {
         --idx;
     }
+
     parent[idx] = '\0';
 
     strncpy(name, parent + idx + 1, 1024);
@@ -653,9 +696,11 @@ void FileSystem::SplitPath(char* fullpath, char* parent, char* name) {
 
 void FileSystem::JoinPath(char* dest, char* parent, char* name) {
     strncpy(dest, parent, 1024);
+
     if (dest[strlen(dest) - 1] != '/') {
         strcat(dest, "/");
     }
+
     strcat(dest, name);
 }
 

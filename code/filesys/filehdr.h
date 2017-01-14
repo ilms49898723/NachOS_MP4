@@ -60,7 +60,7 @@ public:
 
     void Print();           // Print the contents of the file.
 
-// private:
+    // private:
 
     /*
         MP4 hint:
