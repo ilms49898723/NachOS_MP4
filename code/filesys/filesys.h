@@ -145,7 +145,7 @@ public:
 
     void List(char* listDirectoryName);            // List all the files in the file system
 
-    void RecursiveList(char* listDirectoryName, int tab = 4, bool isLast = FALSE); // List all the files in the file system
+    void RecursiveList(char* listDirectoryName, int tab = 4); // List all the files in the file system
 
     void Print();           // List all the files and their contents
 
@@ -169,6 +169,8 @@ private:
     bool wdEnable;
 
     char wd[1024];
+
+    bool isLast[1024];
 
     OpenFile* freeMapFile;       // Bit map of free disk blocks,
     // represented as a file
