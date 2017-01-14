@@ -555,11 +555,14 @@ FileSystem::RecursiveList(char* listDirectoryName, int tab) {
     directory->FetchFrom(dirFile);
     int totalCount = 0;
 
-    for (int i = 0; i < directory->tableSize; ++i) if (directory->table[i].inUse) {
+    for (int i = 0; i < directory->tableSize; ++i) {
+        if (directory->table[i].inUse) {
             ++totalCount;
         }
+    }
 
-    for (int i = 0; i < directory->tableSize; ++i) if (directory->table[i].inUse) {
+    for (int i = 0; i < directory->tableSize; ++i) {
+        if (directory->table[i].inUse) {
             --totalCount;
 
             for (int j = 0; j < tab / 4 - 1; ++j) {
@@ -583,6 +586,7 @@ FileSystem::RecursiveList(char* listDirectoryName, int tab) {
                 RecursiveList(nextDir, tab + 4);
             }
         }
+    }
 
     delete dirFile;
     delete directory;
