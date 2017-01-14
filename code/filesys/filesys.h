@@ -133,11 +133,11 @@ public:
 
     OpenFile* Open(char* name);     // Open a file (UNIX open)
 
-    bool Remove(char* name);        // Delete a file (UNIX unlink)
+    bool Remove(char* name, bool recur);        // Delete a file (UNIX unlink)
 
     void List(char* listDirectoryName);            // List all the files in the file system
 
-    void RecursiveList(char* listDirectoryName, int tab = 0);            // List all the files in the file system
+    void RecursiveList(char* listDirectoryName, int tab = 4);            // List all the files in the file system
 
     void Print();           // List all the files and their contents
 
@@ -150,6 +150,10 @@ public:
     int Close(int fileid);
 
     void SetWorkingDirectory(char* filepath);
+
+    void SplitPath(char* fullpath, char* parent, char* name);
+
+    void JoinPath(char* dest, char* parent, char* name);
 
     OpenFile* fileDescriptorTable[20];
 

@@ -90,10 +90,11 @@ Directory::WriteBack(OpenFile* file) {
 
 int
 Directory::FindIndex(char* name) {
-    for (int i = 0; i < tableSize; i++)
+    for (int i = 0; i < tableSize; i++) {
         if (table[i].inUse && !strncmp(table[i].name, name, FileNameMaxLen)) {
             return i;
         }
+    }
 
     return -1;      // name not in directory
 }
@@ -194,7 +195,9 @@ void
 Directory::List() {
     for (int i = 0; i < tableSize; i++)
         if (table[i].inUse) {
-            printf("%s%s\n", table[i].name, table[i].type ? "/" : "");
+            cout << (table[i].type ? "\x1B[1;34m" : "");
+            cout << table[i].name << (table[i].type ? "/" : "");
+            cout << "\x1B[0m" << endl;
         }
 }
 

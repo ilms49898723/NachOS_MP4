@@ -205,16 +205,10 @@ FileSystem::Create(char* name, int initialSize) {
 
     directory = new Directory(NumDirEntries);
 
-    char tempdir[1024];
+    char parent[1024];
     char filename[1024];
-    strncpy(tempdir, name, 1024);
-    int tempdiridx = strlen(tempdir) - 1;
-    while (tempdiridx >= 0 && tempdir[tempdiridx] != '/') {
-        --tempdiridx;
-    }
-    tempdir[tempdiridx] = '\0';
-    strncpy(filename, name + tempdiridx + 1, 1024);
-    OpenFile* dirFile = OpenDir(tempdir);
+    SplitPath(name, parent, filename);
+    OpenFile* dirFile = OpenDir(parent);
     if (dirFile == NULL) {
         return FALSE;
     }
@@ -382,16 +376,10 @@ FileSystem::Open(char* name) {
 
     DEBUG(dbgFile, "Opening file" << name);
 
-    char tempdir[1024];
+    char parent[1024];
     char filename[1024];
-    strncpy(tempdir, name, 1024);
-    int tempdiridx = strlen(tempdir) - 1;
-    while (tempdiridx >= 0 && tempdir[tempdiridx] != '/') {
-        --tempdiridx;
-    }
-    tempdir[tempdiridx] = '\0';
-    strncpy(filename, name + tempdiridx + 1, 1024);
-    OpenFile* dirFile = OpenDir(tempdir);
+    SplitPath(name, parent, filename);
+    OpenFile* dirFile = OpenDir(parent);
     if (dirFile == NULL) {
         return NULL;
     }
@@ -423,18 +411,33 @@ FileSystem::Open(char* name) {
 //----------------------------------------------------------------------
 
 bool
-FileSystem::Remove(char* name) {
+FileSystem::Remove(char* name, bool recur) {
+    cout << "Remove " << name << endl;
     Directory* directory;
     PersistentBitmap* freeMap;
     FileHeader* fileHdr;
     int sector;
+    int tableIdx;
+
+    char filename[1024];
+    char parent[1024];
+    SplitPath(name, parent, filename);
 
     directory = new Directory(NumDirEntries);
-    directory->FetchFrom(directoryFile);
-    sector = directory->Find(name);
+    OpenFile* dirFile = OpenDir(parent);
+    if (dirFile == NULL) {
+        cout << "Directory " << parent << " not found!" << endl;
+        delete directory;
+        return FALSE;
+    }
+    directory->FetchFrom(dirFile);
+    sector = directory->Find(filename);
+    tableIdx = directory->FindIndex(filename);
 
     if (sector == -1) {
+        cout << "File " << filename << " not found!" << endl;
         delete directory;
+        delete dirFile;
         return FALSE;             // file not found
     }
 
@@ -443,19 +446,53 @@ FileSystem::Remove(char* name) {
 
     freeMap = new PersistentBitmap(freeMapFile, NumSectors);
 
-    for (int i = 0; i < fileHdr->numSectors; ++i) {
-        FileHeader* level1Hdr = new FileHeader;
-        level1Hdr->FetchFrom(fileHdr->dataSectors[i]);
-        level1Hdr->Deallocate(freeMap);
-        freeMap->Clear(fileHdr->dataSectors[i]);
+    if (directory->table[tableIdx].type) {
+        // is a directory, delete all files under it
+        OpenFile* nextDirFile = OpenDir(name);
+        Directory* nextDir = new Directory(NumDirEntries);
+        nextDir->FetchFrom(nextDirFile);
+        int totalCount = 0;
+        for (int i = 0; i < nextDir->tableSize; ++i) {
+            if (nextDir->table[i].inUse) {
+                ++totalCount;
+            }
+        }
+        if (recur == FALSE && totalCount != 0) {
+            cout << filename << ": directory not empty!" << endl;
+            delete directory;
+            delete dirFile;
+            delete fileHdr;
+            delete nextDir;
+            return FALSE;
+        }
+        for (int i = 0; i < nextDir->tableSize; ++i) {
+            if (nextDir->table[i].inUse) {
+                char nextFilename[1024];
+                JoinPath(nextFilename, name, nextDir->table[i].name);
+                Remove(nextFilename, recur);
+            }
+        }
+        delete nextDir;
+    }
+
+    if (fileHdr->level == 0) {
+        for (int i = 0; i < fileHdr->numSectors; ++i) {
+            FileHeader* level1Hdr = new FileHeader;
+            level1Hdr->FetchFrom(fileHdr->dataSectors[i]);
+            level1Hdr->Deallocate(freeMap);
+            // don't clean header sector, let it to be cleaned by level 0
+            // freeMap->Clear(fileHdr->dataSectors[i]);
+            delete level1Hdr;
+        }
     }
     fileHdr->Deallocate(freeMap);       // remove data blocks
     freeMap->Clear(sector);         // remove header block
-    directory->Remove(name);
+    directory->Remove(filename);
 
     freeMap->WriteBack(freeMapFile);        // flush to disk
-    directory->WriteBack(directoryFile);        // flush to disk
+    directory->WriteBack(dirFile);        // flush to disk
     delete fileHdr;
+    delete dirFile;
     delete directory;
     delete freeMap;
     return TRUE;
@@ -489,19 +526,28 @@ FileSystem::RecursiveList(char* listDirectoryName, int tab) {
         return;
     }
     directory->FetchFrom(dirFile);
+    int totalCount = 0;
     for (int i = 0; i < directory->tableSize; ++i) if (directory->table[i].inUse) {
-        for (int j = 0; j < tab; ++j) {
-            cout << "  ";
+        ++totalCount;
+    }
+    for (int i = 0; i < directory->tableSize; ++i) if (directory->table[i].inUse) {
+        --totalCount;
+        for (int j = 0; j < tab / 4 - 1; ++j) {
+            cout << "│   ";
         }
-        cout << directory->table[i].name << (directory->table[i].type ? "/" : "") << endl;
+        if (totalCount) {
+            cout << "├──";
+        } else {
+            cout << "└──";
+        }
+        cout << (directory->table[i].type ? "\x1B[1;34m" : "");
+        cout << directory->table[i].name;
+        cout << (directory->table[i].type ? "/" : "");
+        cout << "\x1B[0m" << endl;
         if (directory->table[i].type) {
             char nextDir[1024];
-            strncpy(nextDir, listDirectoryName, 1024);
-            if (nextDir[strlen(nextDir) - 1] != '/') {
-                strcat(nextDir, "/");
-            }
-            strcat(nextDir, directory->table[i].name);
-            RecursiveList(nextDir, tab + 2);
+            JoinPath(nextDir, listDirectoryName, directory->table[i].name);
+            RecursiveList(nextDir, tab + 4);
         }
     }
     delete dirFile;
@@ -586,6 +632,31 @@ void FileSystem::SetWorkingDirectory(char* filepath) {
     }
     wd[idx] = '\0';
     wdEnable = TRUE;
+}
+
+void FileSystem::SplitPath(char* fullpath, char* parent, char* name) {
+    strncpy(parent, fullpath, 1024);
+
+    int idx;
+    idx = strlen(parent) - 1;
+    while (idx >= 0 && parent[idx] != '/') {
+        --idx;
+    }
+    parent[idx] = '\0';
+
+    strncpy(name, parent + idx + 1, 1024);
+
+    if (strlen(parent) == 0) {
+        strncpy(parent, "/", 1024);
+    }
+}
+
+void FileSystem::JoinPath(char* dest, char* parent, char* name) {
+    strncpy(dest, parent, 1024);
+    if (dest[strlen(dest) - 1] != '/') {
+        strcat(dest, "/");
+    }
+    strcat(dest, name);
 }
 
 #endif // FILESYS_STUB

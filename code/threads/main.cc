@@ -165,7 +165,7 @@ CreateDirectory(char* name) {
     strncpy(myname, name, 1024);
     split = strtok(myname, "/");
     while (split != NULL) {
-        bool response = kernel->fileSystem->CreateDirectory(split, lastDir);
+        kernel->fileSystem->CreateDirectory(split, lastDir);
         if (lastDir[strlen(lastDir) - 1] != '/') {
             strcat(lastDir, "/");
         }
@@ -192,6 +192,7 @@ int
 main(int argc, char** argv) {
     int i;
     static char emptyDebug[10] = "";
+    static char rootString[10] = "/";
     char* debugArg = emptyDebug;
     char* userProgName = NULL;        // default is not to execute a user prog
     bool threadTestFlag = false;
@@ -256,15 +257,21 @@ main(int argc, char** argv) {
             i++;
         } else if (strcmp(argv[i], "-l") == 0) {
             // MP4 mod tag
-            ASSERT(i + 1 < argc);
-            listDirectoryName = argv[i + 1];
+            if (i + 1 < argc) {
+                listDirectoryName = argv[i + 1];
+            } else {
+                listDirectoryName = rootString;
+            }
             dirListFlag = true;
             i++;
         } else if (strcmp(argv[i], "-lr") == 0) {
             // MP4 mod tag
             // recursive list
-            ASSERT(i + 1 < argc);
-            listDirectoryName = argv[i + 1];
+            if (i + 1 < argc) {
+                listDirectoryName = argv[i + 1];
+            } else {
+                listDirectoryName = rootString;
+            }
             dirListFlag = true;
             recursiveListFlag = true;
             i++;
@@ -319,7 +326,7 @@ main(int argc, char** argv) {
 #ifndef FILESYS_STUB
 
     if (removeFileName != NULL) {
-        kernel->fileSystem->Remove(removeFileName);
+        kernel->fileSystem->Remove(removeFileName, recursiveRemoveFlag);
     }
 
     if (copyUnixFileName != NULL && copyNachosFileName != NULL) {
@@ -332,6 +339,7 @@ main(int argc, char** argv) {
 
     if (dirListFlag) {
         if (recursiveListFlag) {
+            cout << "\x1B[1;34m" << listDirectoryName << "\x1B[0m" << endl;
             kernel->fileSystem->RecursiveList(listDirectoryName);
         } else {
             kernel->fileSystem->List(listDirectoryName);
