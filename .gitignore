@@ -5,16 +5,8 @@
 *.o
 nachos
 
-# Built Directory
-code/build.cygwin/
-code/build.linux/
-code/build.macosx/
-
 # cscope
 code/cscope.files
 code/cscope.out
 code/cscope.in.out
 code/cscope.po.out
-
-# Test Directory
-code/test/
