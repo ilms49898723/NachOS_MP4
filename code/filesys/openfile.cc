@@ -130,9 +130,10 @@ OpenFile::ReadAt(char* into, int numBytes, int position) {
     // read in all the full and partial sectors that we need
     buf = new char[numSectors * SectorSize];
 
-    for (i = firstSector; i <= lastSector; i++)
+    for (i = firstSector; i <= lastSector; i++) {
         kernel->synchDisk->ReadSector(hdr->ByteToSector(i * SectorSize),
                                       &buf[(i - firstSector) * SectorSize]);
+    }
 
     // copy the part we want
     bcopy(&buf[position - (firstSector * SectorSize)], into, numBytes);
@@ -174,17 +175,19 @@ OpenFile::WriteAt(char* from, int numBytes, int position) {
         ReadAt(buf, SectorSize, firstSector * SectorSize);
     }
 
-    if (!lastAligned && ((firstSector != lastSector) || firstAligned))
+    if (!lastAligned && ((firstSector != lastSector) || firstAligned)) {
         ReadAt(&buf[(lastSector - firstSector) * SectorSize],
                SectorSize, lastSector * SectorSize);
+    }
 
     // copy in the bytes we want to change
     bcopy(from, &buf[position - (firstSector * SectorSize)], numBytes);
 
     // write modified sectors back
-    for (i = firstSector; i <= lastSector; i++)
+    for (i = firstSector; i <= lastSector; i++) {
         kernel->synchDisk->WriteSector(hdr->ByteToSector(i * SectorSize),
                                        &buf[(i - firstSector) * SectorSize]);
+    }
 
     delete [] buf;
     return numBytes;

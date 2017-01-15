@@ -24,7 +24,7 @@
 #include "utility.h"
 #include "sysdep.h"
 
-#ifdef FILESYS_STUB         // Temporarily implement calls to 
+#ifdef FILESYS_STUB         // Temporarily implement calls to
 // Nachos file system as calls to UNIX!
 // See definitions listed under #else
 class OpenFile {
