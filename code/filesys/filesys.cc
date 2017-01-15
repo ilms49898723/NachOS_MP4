@@ -82,6 +82,7 @@ FileSystem::FileSystem(bool format) {
     DEBUG(dbgFile, "Initializing the file system.");
 
     if (format) {
+        cout << "Formatting the file system" << endl;
         PersistentBitmap* freeMap = new PersistentBitmap(NumSectors);
         Directory* directory = new Directory(NumDirEntries);
         FileHeader* mapHdr = new FileHeader;
@@ -428,7 +429,6 @@ FileSystem::Open(char* name) {
 
 bool
 FileSystem::Remove(char* name, bool recur) {
-    cout << "Remove " << name;
     Directory* directory;
     PersistentBitmap* freeMap;
     FileHeader* fileHdr;
@@ -464,6 +464,7 @@ FileSystem::Remove(char* name, bool recur) {
 
     freeMap = new PersistentBitmap(freeMapFile, NumSectors);
 
+    cout << "Remove " << name;
     if (directory->table[tableIdx].type) {
         cout << "  (directory)" << endl;
         // is a directory, delete all files under it
