@@ -129,7 +129,6 @@ FileHeader::WriteBack(int sector) {
     kernel->synchDisk->WriteSector(sector, (char*)this);
 
     /*
-     * TODO
         MP4 Hint:
         After you add some in-core informations, you may not want to write all fields into disk.
         Use this instead:
@@ -152,7 +151,25 @@ FileHeader::WriteBack(int sector) {
 
 int
 FileHeader::ByteToSector(int offset) {
-    return (dataSectors[offset / SectorSize]);
+    offset = offset / SectorSize;
+    FileHeader* level1Hdr = new FileHeader[numSectors];
+
+    int request;
+
+    if (level == 0) {
+        for (int i = 0; i < numSectors; ++i) {
+            level1Hdr[i].FetchFrom(dataSectors[i]);
+        }
+
+        int level1HdrIdx = offset / NumDirect;
+        int level1Offset = offset % NumDirect;
+        request = level1Hdr[level1HdrIdx].dataSectors[level1Offset];
+    } else {
+        request = dataSectors[offset];
+    }
+
+    delete[] level1Hdr;
+    return request;
 }
 
 //----------------------------------------------------------------------

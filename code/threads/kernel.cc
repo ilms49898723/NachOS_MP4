@@ -300,7 +300,6 @@ int Kernel::Exec(char* name) {
     t[threadNum]->Fork((VoidFunctionPtr) &ForkExecute, (void*)t[threadNum]);
     threadNum++;
 
-    fileSystem->SetWorkingDirectory(name);
     return threadNum - 1;
     /*
         cout << "Total threads number is " << execfileNum << endl;

@@ -81,8 +81,6 @@
 FileSystem::FileSystem(bool format) {
     DEBUG(dbgFile, "Initializing the file system.");
 
-    wdEnable = FALSE;
-
     if (format) {
         PersistentBitmap* freeMap = new PersistentBitmap(NumSectors);
         Directory* directory = new Directory(NumDirEntries);
@@ -674,18 +672,6 @@ int FileSystem::Close(int fileid) {
     delete fileDescriptorTable[fileid];
     fileDescriptorTable[fileid] = NULL;
     return 1;
-}
-
-void FileSystem::SetWorkingDirectory(char* filepath) {
-    strncpy(wd, filepath, 1024);
-    int idx = strlen(filepath) - 1;
-
-    while (idx >= 0 && wd[idx] != '/') {
-        --idx;
-    }
-
-    wd[idx] = '\0';
-    wdEnable = TRUE;
 }
 
 void FileSystem::SplitPath(char* fullpath, char* parent, char* name) {

@@ -17,8 +17,8 @@
 #include "disk.h"
 #include "pbitmap.h"
 
-#define NumDirect  static_cast<int>(((SectorSize - 2 * sizeof(int)) / sizeof(int)) - 1)
-#define MaxFileSize     static_cast<int>((NumDirect * SectorSize))
+#define NumDirect    static_cast<int>(((SectorSize - 2 * sizeof(int)) / sizeof(int)) - 1)
+#define MaxFileSize  static_cast<int>((NumDirect * SectorSize))
 
 // The following class defines the Nachos "file header" (in UNIX terms,
 // the "i-node"), describing where on disk to find all of the data in the file.

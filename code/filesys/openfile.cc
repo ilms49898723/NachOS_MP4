@@ -113,14 +113,6 @@ OpenFile::ReadAt(char* into, int numBytes, int position) {
     int i, firstSector, lastSector, numSectors;
     char* buf;
 
-    FileHeader* level1Hdr = new FileHeader[hdr->numSectors];
-
-    if (hdr->level == 0) {
-        for (int i = 0; i < hdr->numSectors; ++i) {
-            level1Hdr[i].FetchFrom(hdr->dataSectors[i]);
-        }
-    }
-
     if ((numBytes <= 0) || (position >= fileLength)) {
         return 0;    // check request
     }
@@ -138,22 +130,13 @@ OpenFile::ReadAt(char* into, int numBytes, int position) {
     // read in all the full and partial sectors that we need
     buf = new char[numSectors * SectorSize];
 
-    for (i = firstSector; i <= lastSector; i++) {
-        if (hdr->level == 1) {
-            kernel->synchDisk->ReadSector(hdr->ByteToSector(i * SectorSize),
-                                          &buf[(i - firstSector) * SectorSize]);
-        } else {
-            int level1HdrIdx = i / NumDirect;
-            int level1Offset = i % NumDirect;
-            kernel->synchDisk->ReadSector(level1Hdr[level1HdrIdx].ByteToSector(level1Offset * SectorSize),
-                                          &buf[(i - firstSector) * SectorSize]);
-        }
-    }
+    for (i = firstSector; i <= lastSector; i++)
+        kernel->synchDisk->ReadSector(hdr->ByteToSector(i * SectorSize),
+                                      &buf[(i - firstSector) * SectorSize]);
 
     // copy the part we want
     bcopy(&buf[position - (firstSector * SectorSize)], into, numBytes);
     delete [] buf;
-    delete [] level1Hdr;
     return numBytes;
 }
 
@@ -163,14 +146,6 @@ OpenFile::WriteAt(char* from, int numBytes, int position) {
     int i, firstSector, lastSector, numSectors;
     bool firstAligned, lastAligned;
     char* buf;
-
-    FileHeader* level1Hdr = new FileHeader[hdr->numSectors];
-
-    if (hdr->level == 0) {
-        for (int i = 0; i < hdr->numSectors; ++i) {
-            level1Hdr[i].FetchFrom(hdr->dataSectors[i]);
-        }
-    }
 
     if ((numBytes <= 0) || (position >= fileLength)) {
         return 0;    // check request
@@ -207,20 +182,11 @@ OpenFile::WriteAt(char* from, int numBytes, int position) {
     bcopy(from, &buf[position - (firstSector * SectorSize)], numBytes);
 
     // write modified sectors back
-    for (i = firstSector; i <= lastSector; i++) {
-        if (hdr->level == 1) {
-            kernel->synchDisk->WriteSector(hdr->ByteToSector(i * SectorSize),
-                                           &buf[(i - firstSector) * SectorSize]);
-        } else {
-            int level1HdrIdx = i / static_cast<int>(NumDirect);
-            int level1Offset = i % static_cast<int>(NumDirect);
-            kernel->synchDisk->WriteSector(level1Hdr[level1HdrIdx].ByteToSector(level1Offset * SectorSize),
-                                           &buf[(i - firstSector) * SectorSize]);
-        }
-    }
+    for (i = firstSector; i <= lastSector; i++)
+        kernel->synchDisk->WriteSector(hdr->ByteToSector(i * SectorSize),
+                                       &buf[(i - firstSector) * SectorSize]);
 
     delete [] buf;
-    delete[] level1Hdr;
     return numBytes;
 }
 

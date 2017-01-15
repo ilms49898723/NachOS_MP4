@@ -157,8 +157,6 @@ public:
 
     int Close(int fileid);
 
-    void SetWorkingDirectory(char* filepath);
-
     void SplitPath(char* fullpath, char* parent, char* name);
 
     void JoinPath(char* dest, char* parent, char* name);
@@ -166,10 +164,6 @@ public:
     OpenFile* fileDescriptorTable[20];
 
 private:
-    bool wdEnable;
-
-    char wd[1024];
-
     bool isLast[1024];
 
     OpenFile* freeMapFile;       // Bit map of free disk blocks,
