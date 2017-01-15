@@ -189,6 +189,7 @@ FileSystem::~FileSystem() {
 
 bool
 FileSystem::Create(char* name, int initialSize) {
+    cout << "Create file " << name << " with size " << initialSize << endl;
     const int NumOfLevel1Hdr = divRoundUp(initialSize, SectorSize * NumDirect);
 
     Directory* directory;
@@ -304,6 +305,7 @@ FileSystem::CreateDirectory(char* name, char* parent) {
     if (directory->Find(name) != -1) {
         success = FALSE;
     } else {
+        cout << "Creating directory " << name << " under " << parent << endl;
         freeMap = new PersistentBitmap(freeMapFile, NumSectors);
         sector = freeMap->FindAndSet();
 
@@ -426,7 +428,7 @@ FileSystem::Open(char* name) {
 
 bool
 FileSystem::Remove(char* name, bool recur) {
-    cout << "Remove " << name << endl;
+    cout << "Remove " << name;
     Directory* directory;
     PersistentBitmap* freeMap;
     FileHeader* fileHdr;
@@ -463,6 +465,7 @@ FileSystem::Remove(char* name, bool recur) {
     freeMap = new PersistentBitmap(freeMapFile, NumSectors);
 
     if (directory->table[tableIdx].type) {
+        cout << "  (directory)" << endl;
         // is a directory, delete all files under it
         OpenFile* nextDirFile = OpenDir(name);
         Directory* nextDir = new Directory(NumDirEntries);
@@ -493,6 +496,8 @@ FileSystem::Remove(char* name, bool recur) {
         }
 
         delete nextDir;
+    } else {
+        cout << "  (regular file)" << endl;
     }
 
     if (fileHdr->level == 0) {
@@ -530,9 +535,12 @@ FileSystem::List(char* listDirectoryName) {
     OpenFile* dirFile = OpenDir(listDirectoryName);
 
     if (dirFile == NULL) {
+        cout << listDirectoryName << ": no such file or directory" << endl;
         delete directory;
         return;
     }
+
+    cout << "List directory " << listDirectoryName << endl;
 
     directory->FetchFrom(dirFile);
     directory->List();
@@ -550,6 +558,7 @@ FileSystem::RecursiveList(char* listDirectoryName, int tab) {
     OpenFile* dirFile = OpenDir(listDirectoryName);
 
     if (dirFile == NULL) {
+        cout << listDirectoryName << ": no such file or directory" << endl;
         delete directory;
         return;
     }

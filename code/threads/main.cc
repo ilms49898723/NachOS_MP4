@@ -129,6 +129,7 @@ Copy(char* from, char* to) {
 
 void
 Print(char* name) {
+    cout << "Print file " << name << endl;
     OpenFile* openFile;
     int i, amountRead;
     char* buffer;
@@ -344,6 +345,7 @@ main(int argc, char** argv) {
 
     if (dirListFlag) {
         if (recursiveListFlag) {
+            cout << "List directory " << listDirectoryName << endl;
             cout << "\x1B[1;34m" << listDirectoryName << "\x1B[0m" << endl;
             kernel->fileSystem->RecursiveList(listDirectoryName);
         } else {

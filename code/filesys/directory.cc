@@ -193,12 +193,15 @@ Directory::Remove(char* name) {
 
 void
 Directory::List() {
+    int totalCount = 0;
     for (int i = 0; i < tableSize; i++)
         if (table[i].inUse) {
+            totalCount++;
             cout << (table[i].type ? "\x1B[1;34m" : "");
             cout << table[i].name << (table[i].type ? "/" : "");
             cout << "\x1B[0m" << endl;
         }
+    cout << "Total: " << totalCount << endl;
 }
 
 //----------------------------------------------------------------------

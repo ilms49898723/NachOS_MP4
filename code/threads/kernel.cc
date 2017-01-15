@@ -50,7 +50,7 @@ Kernel::Kernel(int argc, char** argv) {
             debugUserProg = TRUE;
         } else if (strcmp(argv[i], "-e") == 0) {
             execfile[++execfileNum] = argv[++i];
-            cout << execfile[execfileNum] << "\n";
+            cout << "Execute " << execfile[execfileNum] << "\n";
         } else if (strcmp(argv[i], "-ci") == 0) {
             ASSERT(i + 1 < argc);
             consoleIn = argv[i + 1];
